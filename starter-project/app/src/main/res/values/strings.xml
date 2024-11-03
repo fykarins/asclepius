@@ -9,4 +9,13 @@
     <string name="preview_image" />
     <string name="inference_time_text">%1$d ms</string>
     <string name="result_image_description">Image displaying the result</string>
+
+    <string name="save_classification">save</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="history_image_desc">image description</string>
+    <string name="prediction_result">prediction_result</string>
+    <string name="confidence_score">confidence score</string>
+    <string name="history">History</string>
+    <string name="home">Home</string>
+    <string name="welcome_to_home"/>
 </resources>

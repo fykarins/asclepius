@@ -102,15 +102,14 @@ class ImageClassifierHelper(
         var inferenceTime = SystemClock.uptimeMillis()
         inferenceTime = SystemClock.uptimeMillis() - inferenceTime
 
-        outputs?.forEach { classification ->
-            classification.categories.forEach { category ->
-                Log.d(
-                    "Classification Result",
-                    "Label: ${category.label}, Confidence: ${category.score}"
-                )
-            }
+        val highestCategory = outputs?.flatMap { it.categories }?.maxByOrNull { it.score }
+
+        highestCategory?.let { category ->
+            val roundedScore = (category.score * 100).toInt()
+            Log.d("Classification Result", "Label: ${category.label}, Confidence: $roundedScore%")
+
+            classifierListener?.onResult(outputs.toMutableList(), inferenceTime)
         }
-        classifierListener?.onResult(outputs, inferenceTime)
     }
 
     private fun toBitmap(imageUri: Uri): Bitmap? {
