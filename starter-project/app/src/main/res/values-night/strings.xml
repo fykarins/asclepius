@@ -11,4 +11,8 @@
     <string name="inference_time_text">%1$d ms</string>
     <string name="result_image_description">Image displaying the result</string>
     <string name="welcome_to_home">Welcome to Home</string>
+    <string name="delete">Delete</string>
+    <string name="save">Save</string>
+    <string name="result_image" />
+    <string name="result_text">%1$s %2$s</string>
 </resources>

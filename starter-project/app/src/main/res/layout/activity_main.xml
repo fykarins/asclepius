@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -9,21 +8,26 @@
     <!-- Toolbar -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="?attr/colorPrimary"
+        app:title="Asclepius"
         app:titleTextColor="@android:color/white"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Progress Indicator for loading states -->
     <com.google.android.material.progressindicator.LinearProgressIndicator
         android:id="@+id/progressIndicator"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:indeterminate="true"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/toolbar" />
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Preview Image View for displaying selected image -->
     <ImageView
@@ -35,43 +39,8 @@
         app:layout_constraintTop_toBottomOf="@id/progressIndicator"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/galleryButton"
-        app:srcCompat="@drawable/ic_place_holder" />
-
-    <!-- Navigation host fragment -->
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/nav_host_fragment"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:name="androidx.navigation.fragment.NavHostFragment"
-        app:navGraph="@navigation/mobile_navigation"
-        app:defaultNavHost="true"
-        app:layout_constraintTop_toBottomOf="@id/toolbar"
-        app:layout_constraintBottom_toTopOf="@id/galleryButton"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Button to open the gallery with reduced width -->
-    <Button
-        android:id="@+id/galleryButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:text="@string/gallery"
-        app:layout_constraintBottom_toTopOf="@id/analyzeButton"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <!-- Button to analyze the selected image with reduced width -->
-    <Button
-        android:id="@+id/analyzeButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        android:text="@string/analyze"
         app:layout_constraintBottom_toTopOf="@id/resultTextView"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:srcCompat="@drawable/ic_place_holder" />
 
     <!-- TextView to display classification results -->
     <TextView
@@ -80,6 +49,45 @@
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
         android:text="@string/results"
+        app:layout_constraintTop_toBottomOf="@id/previewImageView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/galleryButton" />
+
+    <!-- Button to open the gallery -->
+    <Button
+        android:id="@+id/galleryButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="4dp"
+        android:layout_marginBottom="32dp"
+        android:text="@string/gallery"
+        app:layout_constraintBottom_toTopOf="@id/nav_view"
+        app:layout_constraintEnd_toStartOf="@id/analyzeButton"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Button to analyze the selected image -->
+    <Button
+        android:id="@+id/analyzeButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="32dp"
+        android:text="@string/analyze"
+        app:layout_constraintBottom_toTopOf="@id/nav_view"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/galleryButton" />
+
+    <!-- FragmentContainerView for Navigation Component -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/nav_host_fragment"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:defaultNavHost="true"
+        app:navGraph="@navigation/mobile_navigation"
+        app:layout_constraintTop_toBottomOf="@id/progressIndicator"
         app:layout_constraintBottom_toTopOf="@id/nav_view"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -87,7 +95,7 @@
     <!-- Bottom Navigation View for navigation -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/nav_view"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="4dp"
         android:background="?android:attr/windowBackground"

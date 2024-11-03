@@ -8,11 +8,12 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.dicoding.asclepius.R
 import com.dicoding.asclepius.adapter.HistoryAdapter
 import com.dicoding.asclepius.adapter.Result
 import com.dicoding.asclepius.databinding.FragmentHistoryBinding
-
 
 class HistoryFragment : Fragment() {
 
@@ -29,14 +30,13 @@ class HistoryFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentHistoryBinding.inflate(inflater, container, false)
-        return  binding.root
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupRecyclerView()
-        observeHistory()
+        findNavController().navigate(R.id.action_history_to_home)
     }
 
     private fun setupRecyclerView() {
@@ -74,6 +74,7 @@ class HistoryFragment : Fragment() {
             }
         }
     }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

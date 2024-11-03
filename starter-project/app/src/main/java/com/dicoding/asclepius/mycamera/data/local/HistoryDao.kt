@@ -1,6 +1,7 @@
 package com.dicoding.asclepius.mycamera.data.local
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -14,4 +15,7 @@ interface HistoryDao {
 
     @Query("SELECT * FROM history_table")
     fun getAllHistory(): Flow<List<HistoryEntity>>
+
+    @Delete
+    suspend fun deleteHistory(historyEntity: HistoryEntity)
 }

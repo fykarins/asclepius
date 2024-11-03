@@ -2,18 +2,26 @@
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    app:startDestination="@id/navigation_home">
+    app:startDestination="@id/navigation_home"
+    app:title="@string/app_name">
 
     <fragment
         android:id="@+id/navigation_home"
         android:name="com.dicoding.asclepius.view.HomeFragment"
-        android:label="Home"
+        android:title="@string/home"
         tools:layout="@layout/fragment_home">
+        <action
+            android:id="@+id/action_home_to_history"
+            app:destination="@id/historyFragment" />
     </fragment>
 
     <fragment
         android:id="@+id/historyFragment"
         android:name="com.dicoding.asclepius.view.HistoryFragment"
-        android:label="@string/history"
-        tools:layout="@layout/fragment_history"/>
+        android:title="@string/history"
+        tools:layout="@layout/fragment_history">
+        <action
+            android:id="@+id/action_history_to_home"
+            app:destination="@id/navigation_home" />
+    </fragment>
 </navigation>

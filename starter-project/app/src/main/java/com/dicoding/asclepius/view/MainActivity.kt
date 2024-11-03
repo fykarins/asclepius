@@ -42,12 +42,17 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Setup NavController
-        val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment?
-        navController = navHostFragment?.navController ?: throw IllegalStateException("NavController not found")
+        // Initialize NavController
+        val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
+        if (navHostFragment != null) {
+            navController = navHostFragment.navController
+        } else {
+            Log.e("MainActivity", "NavHostFragment not found")
+        }
 
-        val bottomNavigationView = findViewById<BottomNavigationView>(R.id.nav_view)
-        bottomNavigationView.setupWithNavController(navController)
+        // Setup bottom navigation
+        val navView: BottomNavigationView = findViewById(R.id.nav_view)
+        navView.setupWithNavController(navController)
 
         setupImageClassifier()
         setupButtons()
