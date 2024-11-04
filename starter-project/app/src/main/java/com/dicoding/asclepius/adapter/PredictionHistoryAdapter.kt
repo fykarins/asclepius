@@ -34,7 +34,7 @@ class PredictionHistoryAdapter(private val predictionList: List<PredictionHistor
         if (currentItem.result.isNotEmpty()) {
             holder.bind(currentItem)
             holder.itemView.visibility = View.VISIBLE
-            holder.itemView.layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT) // Atur kembali parameter tata letak
+            holder.itemView.layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         } else {
             holder.itemView.visibility = View.GONE
             holder.itemView.layoutParams = RecyclerView.LayoutParams(0, 0)
@@ -44,9 +44,9 @@ class PredictionHistoryAdapter(private val predictionList: List<PredictionHistor
     override fun getItemCount() = predictionList.size
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val imageView: ImageView = itemView.findViewById(R.id.savedImg)
-        val resultTextView: TextView = itemView.findViewById(R.id.tvLabel)
-        val deleteImageView: Button = itemView.findViewById(R.id.btnDelete)
+        private val imageView: ImageView = itemView.findViewById(R.id.savedImg)
+        private val resultTextView: TextView = itemView.findViewById(R.id.tvLabel)
+        private val deleteImageView: Button = itemView.findViewById(R.id.btnDelete)
 
         fun bind(prediction: PredictionHistory) {
             Glide.with(itemView.context)

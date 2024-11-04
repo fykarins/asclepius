@@ -6,12 +6,12 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.dicoding.asclepius.databinding.ActivityResultBinding
+import androidx.lifecycle.lifecycleScope
 import com.dicoding.asclepius.data.local.AppDatabase
 import com.dicoding.asclepius.data.local.PredictionHistory
+import com.dicoding.asclepius.databinding.ActivityResultBinding
 import com.dicoding.asclepius.helper.ImageClassifierHelper
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.tensorflow.lite.task.vision.classifier.Classifications
 import java.io.File
@@ -25,7 +25,6 @@ class ResultActivity : AppCompatActivity() {
         const val TAG = "imagePicker"
         const val RESULT_TEXT = "result_text"
         const val REQUEST_HISTORY_UPDATE = 1
-
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,8 +40,8 @@ class ResultActivity : AppCompatActivity() {
             val imageClassifierHelper = ImageClassifierHelper(
                 contextValue = this,
                 classifierListenerValue = object : ImageClassifierHelper.ClassifierListener {
-                    override fun onError(errorMessage: String) {
-                        Log.d(TAG, "Error: $errorMessage")
+                    override fun onError(errorMsg: String) {  // Updated parameter name
+                        Log.d(TAG, "Error: $errorMsg")
                     }
 
                     override fun onResults(results: List<Classifications>?, inferenceTime: Long) {
@@ -57,11 +56,11 @@ class ResultActivity : AppCompatActivity() {
         }
 
         binding.saveButton.setOnClickListener {
-            val imageUriString = intent.getStringExtra(IMAGE_URI)
+            val imageUriStr = intent.getStringExtra(IMAGE_URI)  // Renamed to avoid shadowing
             val result = binding.resultText.text.toString()
 
-            if (imageUriString != null) {
-                val imageUri = Uri.parse(imageUriString)
+            if (imageUriStr != null) {
+                val imageUri = Uri.parse(imageUriStr)
                 showToast("Data saved")
                 savePredictionToDatabase(imageUri, result)
             } else {
@@ -106,7 +105,7 @@ class ResultActivity : AppCompatActivity() {
                 }
             }
             val prediction = PredictionHistory(imagePath = destinationUri.toString(), result = result)
-            GlobalScope.launch(Dispatchers.IO) {
+            lifecycleScope.launch(Dispatchers.IO) {  // Use lifecycleScope instead of GlobalScope
                 val database = AppDatabase.getDatabase(applicationContext)
                 try {
                     database.predictionHistoryDao().insertPrediction(prediction)
@@ -122,7 +121,6 @@ class ResultActivity : AppCompatActivity() {
             Log.e(TAG, "Result is empty, cannot save prediction to database.")
         }
     }
-
 
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()

@@ -21,9 +21,9 @@ import org.tensorflow.lite.task.vision.classifier.ImageClassifier
 
 @Suppress("DEPRECATION")
 class ImageClassifierHelper(
-    val thresholdValue: Float = 0.1f,
-    var maxResultsValue: Int = 3,
-    val modelNameValue: String = "cancer_classification.tflite",
+    private val thresholdValue: Float = 0.1f,
+    private var maxResultsValue: Int = 3,
+    private val modelNameValue: String = "cancer_classification.tflite",
     val contextValue: Context,
     val classifierListenerValue: ClassifierListener?
 ) {

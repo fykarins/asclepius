@@ -1,7 +1,5 @@
 package com.dicoding.asclepius.data.remote
 
-import com.dicoding.asclepius.data.remote.ApiConfig
-import com.dicoding.asclepius.data.remote.NewsApiService
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 

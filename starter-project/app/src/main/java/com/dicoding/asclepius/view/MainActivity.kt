@@ -6,8 +6,10 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.dicoding.asclepius.R
 import com.dicoding.asclepius.databinding.ActivityMainBinding
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -16,57 +18,12 @@ import java.io.File
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
-
     private var currentImageUri: Uri? = null
     private var croppedImageUri: Uri? = null
     private lateinit var bottomNavigationView: BottomNavigationView
 
     companion object {
         const val TAG = "ImagePicker"
-        private const val REQUEST_RESULT = 1001
-    }
-
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        bottomNavigationView = findViewById(R.id.menuBar)
-        bottomNavigationView.setOnNavigationItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.home -> {
-                    startActivity(Intent(this, MainActivity::class.java))
-                    true
-                }
-                R.id.news -> {
-                    startActivity(Intent(this,NewsActivity::class.java))
-                    true
-                }
-                R.id.history_menu -> {
-                    startActivity(Intent(this, HistoryActivity::class.java))
-                    true
-                }
-                else -> false
-            }
-        }
-        binding.galleryButton.setOnClickListener { startGallery() }
-        binding.analyzeButton.setOnClickListener {
-            currentImageUri?.let {
-                analyzeImage()
-                moveToResult()
-            } ?: run {
-                showToast(getString(R.string.image_classifier_failed))
-            }
-        }
-
-    }
-
-
-    private fun startGallery() {
-        val intent = Intent(Intent.ACTION_GET_CONTENT)
-        intent.type = "image/*"
-        val chooser = Intent.createChooser(intent, "Choose a Picture")
-        launcherIntentGallery.launch(chooser)
     }
 
     private val launcherIntentGallery = registerForActivityResult(
@@ -82,27 +39,91 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun startUCrop(sourceUri: Uri) {
-        val fileName = "cropped_image_${System.currentTimeMillis()}.jpg"
-        val destinationUri = Uri.fromFile(File(cacheDir, fileName))
-        UCrop.of(sourceUri, destinationUri)
-            .withAspectRatio(1f, 1f)
-            .withMaxResultSize(1000, 1000)
-            .start(this)
+    private val launcherResultActivity: ActivityResultLauncher<Intent> = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            showToast("Image analyzed successfully")
+        } else {
+            showToast("Image analysis failed")
+        }
     }
 
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == UCrop.REQUEST_CROP && resultCode == RESULT_OK) {
-            val resultUri = UCrop.getOutput(data!!)
+    private val cropActivityLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val resultUri = UCrop.getOutput(result.data!!)
             resultUri?.let {
                 showCroppedImage(resultUri)
             } ?: showToast("Failed to crop image")
-        } else if (resultCode == UCrop.RESULT_ERROR) {
-            val cropError = UCrop.getError(data!!)
+        } else if (result.resultCode == UCrop.RESULT_ERROR) {
+            val cropError = UCrop.getError(result.data!!)
             showToast("Crop error: ${cropError?.message}")
         }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        val toolbar: androidx.appcompat.widget.Toolbar = findViewById(R.id.toolbar)
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayShowTitleEnabled(true)
+        toolbar.setTitleTextColor(ContextCompat.getColor(this, android.R.color.white))
+
+        bottomNavigationView = findViewById(R.id.menuBar)
+        bottomNavigationView.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.home -> {
+                    startActivity(Intent(this, MainActivity::class.java))
+                    true
+                }
+                R.id.news -> {
+                    startActivity(Intent(this, NewsActivity::class.java))
+                    true
+                }
+                R.id.history_menu -> {
+                    startActivity(Intent(this, HistoryActivity::class.java))
+                    true
+                }
+                else -> false
+            }
+        }
+
+        binding.galleryButton.setOnClickListener { startGallery() }
+        binding.analyzeButton.setOnClickListener {
+            currentImageUri?.let {
+                analyzeImage()
+            } ?: run {
+                showToast(getString(R.string.image_classifier_failed))
+            }
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.empty_menu, menu)
+        return true
+    }
+
+    private fun startGallery() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "image/*"
+        }
+        val chooser = Intent.createChooser(intent, "Choose a Picture")
+        launcherIntentGallery.launch(chooser)
+    }
+
+    private fun startUCrop(sourceUri: Uri) {
+        val fileName = "cropped_image_${System.currentTimeMillis()}.jpg"
+        val destinationUri = Uri.fromFile(File(cacheDir, fileName))
+        val uCropIntent = UCrop.of(sourceUri, destinationUri)
+            .withAspectRatio(1f, 1f)
+            .withMaxResultSize(1000, 1000)
+            .getIntent(this@MainActivity)
+
+        cropActivityLauncher.launch(uCropIntent)
     }
 
     private fun showImage() {
@@ -113,20 +134,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun analyzeImage() {
-        val intent = Intent(this, ResultActivity::class.java)
         croppedImageUri?.let { uri ->
+            val intent = Intent(this, ResultActivity::class.java)
             intent.putExtra(ResultActivity.IMAGE_URI, uri.toString())
-            startActivityForResult(intent, REQUEST_RESULT)
-        } ?: showToast(getString(R.string.image_classifier_failed))
-    }
-
-
-    private fun moveToResult() {
-        Log.d(TAG, "Moving to ResultActivity")
-        val intent = Intent(this, ResultActivity::class.java)
-        croppedImageUri?.let { uri ->
-            intent.putExtra(ResultActivity.IMAGE_URI, uri.toString())
-            startActivity(intent)
+            launcherResultActivity.launch(intent)
         } ?: showToast(getString(R.string.image_classifier_failed))
     }
 
@@ -138,10 +149,4 @@ class MainActivity : AppCompatActivity() {
         binding.previewImageView.setImageURI(uri)
         croppedImageUri = uri
     }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu, menu)
-        return true
-    }
-
 }

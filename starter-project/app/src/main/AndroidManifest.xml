@@ -49,10 +49,6 @@
             android:name=".view.HistoryActivity"
             android:exported="false" />
 
-        <activity
-            android:name=".view.ResultActivity"
-            android:exported="false" />
-
     </application>
 
 </manifest>

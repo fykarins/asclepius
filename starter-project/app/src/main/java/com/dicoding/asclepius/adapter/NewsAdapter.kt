@@ -5,7 +5,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -28,26 +27,23 @@ class NewsAdapter : ListAdapter<NewsItem, NewsAdapter.ViewHolder>(DiffCallback()
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tvTitle: TextView = itemView.findViewById(R.id.tvTitle)
         private val imgNews: ImageView = itemView.findViewById(R.id.imgNews)
+        private val tvLink: TextView = itemView.findViewById(R.id.tvLink)
 
         fun bind(newsItem: NewsItem) {
             tvTitle.text = newsItem.title
-            itemView.findViewById<TextView>(R.id.tvLink).apply {
-                text = "Read more"
+            tvLink.apply {
+                text = itemView.context.getString(R.string.read_more)
                 setTag(R.id.tvLink, newsItem.url)
                 visibility = if (newsItem.url != null) View.VISIBLE else View.GONE
             }
-            if (!newsItem.imageUrl.isNullOrEmpty()) {
-                Glide.with(itemView.context)
-                    .load(newsItem.imageUrl)
-                    .placeholder(R.drawable.ic_place_holder)
-                    .error(R.drawable.ic_place_holder)
-                    .into(imgNews)
-            } else {
-                imgNews.setImageDrawable(ContextCompat.getDrawable(itemView.context, R.drawable.ic_place_holder))
-            }
+
+            Glide.with(itemView.context)
+                .load(newsItem.imageUrl)
+                .placeholder(R.drawable.ic_place_holder)
+                .error(R.drawable.ic_place_holder)
+                .into(imgNews)
         }
     }
-
 
     class DiffCallback : DiffUtil.ItemCallback<NewsItem>() {
         override fun areItemsTheSame(oldItem: NewsItem, newItem: NewsItem): Boolean {

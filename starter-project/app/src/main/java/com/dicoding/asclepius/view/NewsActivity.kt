@@ -5,7 +5,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
@@ -28,10 +27,12 @@ class NewsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityNewsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
         bottomNavigationView = findViewById(R.id.menuBar)
         newsRecyclerView = findViewById(R.id.rvNewsList)
         bottomNavigationView.selectedItemId = R.id.news
-        bottomNavigationView.setOnNavigationItemSelectedListener { menuItem ->
+
+        bottomNavigationView.setOnItemSelectedListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.home -> {
                     startActivity(Intent(this, MainActivity::class.java))
@@ -47,6 +48,7 @@ class NewsActivity : AppCompatActivity() {
                 else -> false
             }
         }
+
         initRecyclerView()
 
         newsViewModel = ViewModelProvider(this).get(NewsViewModel::class.java)
@@ -63,15 +65,17 @@ class NewsActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@NewsActivity)
         }
     }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             android.R.id.home -> {
-                onBackPressed()
+                onBackPressedDispatcher.onBackPressed()
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
     }
+
     fun openNewsUrl(view: View) {
         val url = view.getTag(R.id.tvLink) as? String
         url?.let {

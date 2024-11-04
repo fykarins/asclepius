@@ -1,11 +1,10 @@
 package com.dicoding.asclepius.data.remote
 
+import com.dicoding.asclepius.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import com.dicoding.asclepius.BuildConfig
-import com.dicoding.asclepius.data.remote.NewsApiService
 
 object ApiConfig {
     const val BASE_URL = BuildConfig.NEWS_API_URL

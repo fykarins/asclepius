@@ -14,7 +14,7 @@ class NewsViewModel : ViewModel() {
             onSuccess = { newsList ->
                 _newsList.postValue(newsList)
             },
-            onFailure = { errorMessage ->
+            onFailure = { _ ->
             }
         )
     }
