@@ -39,6 +39,20 @@
             android:name="com.yalantis.ucrop.UCropActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
+        <activity
+            android:name=".view.NewsActivity"
+            android:exported="false"
+            android:label="@string/title_activity_news"
+            android:theme="@style/Theme.Asclepius" />
+
+        <activity
+            android:name=".view.HistoryActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".view.ResultActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>

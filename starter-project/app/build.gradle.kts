@@ -17,6 +17,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "NEWS_API_KEY", "\"e16f3ffef6a04f15bd6fdfcc42ae49a3\"")
+        buildConfigField("String", "NEWS_API_URL", "\"https://newsapi.org/v2/\"")
     }
 
     buildTypes {
@@ -38,7 +40,7 @@ android {
     buildFeatures {
         viewBinding = true
         mlModelBinding = true
-        mlModelBinding = true
+        buildConfig = true
     }
 }
 

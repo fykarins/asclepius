@@ -6,19 +6,16 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
-import com.dicoding.asclepius.R
 import com.dicoding.asclepius.databinding.ActivityResultBinding
+import com.dicoding.asclepius.data.local.AppDatabase
+import com.dicoding.asclepius.data.local.PredictionHistory
 import com.dicoding.asclepius.helper.ImageClassifierHelper
-import com.dicoding.asclepius.mycamera.data.local.HistoryEntity
-import com.dicoding.asclepius.mycamera.data.local.HistoryRoomDatabase
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.tensorflow.lite.task.vision.classifier.Classifications
 import java.io.File
 import java.io.FileOutputStream
-import java.util.Locale
-import java.util.UUID
 
 class ResultActivity : AppCompatActivity() {
     private lateinit var binding: ActivityResultBinding
@@ -28,6 +25,7 @@ class ResultActivity : AppCompatActivity() {
         const val TAG = "imagePicker"
         const val RESULT_TEXT = "result_text"
         const val REQUEST_HISTORY_UPDATE = 1
+
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,18 +39,18 @@ class ResultActivity : AppCompatActivity() {
             displayImage(imageUri)
 
             val imageClassifierHelper = ImageClassifierHelper(
-                context = this,
-                classifierListener = object : ImageClassifierHelper.ClassifierListener {
-                    override fun onError(error: String) {
-                        Log.d(TAG, "Error: $error")
+                contextValue = this,
+                classifierListenerValue = object : ImageClassifierHelper.ClassifierListener {
+                    override fun onError(errorMessage: String) {
+                        Log.d(TAG, "Error: $errorMessage")
                     }
 
-                    override fun onResult(results: MutableList<Classifications>?, inferenceTime: Long) {
+                    override fun onResults(results: List<Classifications>?, inferenceTime: Long) {
                         results?.let { showResults(it) }
                     }
                 }
             )
-            imageClassifierHelper.classifyStaticImage(imageUri)
+            imageClassifierHelper.classifyImage(imageUri)
         } else {
             Log.e(TAG, "No image URI provided")
             finish()
@@ -84,16 +82,13 @@ class ResultActivity : AppCompatActivity() {
         val score = topResult.categories[0].score
 
         fun Float.formatToString(): String {
-            return String.format(Locale.US, "%.2f%%", this * 100)
+            return String.format("%.2f%%", this * 100)
         }
-
-        val resultText = getString(R.string.result_text, label, score.formatToString())
-        binding.resultText.text = resultText
+        binding.resultText.text = "$label ${score.formatToString()}"
     }
 
-
     private fun moveToHistory(imageUri: Uri, result: String) {
-        val intent = Intent(this, HistoryFragment::class.java)
+        val intent = Intent(this, HistoryActivity::class.java)
         intent.putExtra(RESULT_TEXT, result)
         intent.putExtra(IMAGE_URI, imageUri.toString())
         setResult(RESULT_OK, intent)
@@ -110,19 +105,13 @@ class ResultActivity : AppCompatActivity() {
                     input.copyTo(output)
                 }
             }
-
-            val prediction = HistoryEntity(
-                id = UUID.randomUUID().toString(),
-                prediction = result,
-                image = destinationUri.toString()
-            )
-
-            lifecycleScope.launch(Dispatchers.IO) {
-                val database = HistoryRoomDatabase.getDatabase(applicationContext)
+            val prediction = PredictionHistory(imagePath = destinationUri.toString(), result = result)
+            GlobalScope.launch(Dispatchers.IO) {
+                val database = AppDatabase.getDatabase(applicationContext)
                 try {
-                    database.historyDao().insertHistory(prediction)
+                    database.predictionHistoryDao().insertPrediction(prediction)
                     Log.d(TAG, "Prediction saved successfully: $prediction")
-                    val predictions = database.historyDao().getAllHistory()
+                    val predictions = database.predictionHistoryDao().getAllPredictions()
                     Log.d(TAG, "All predictions after save: $predictions")
                     moveToHistory(destinationUri, result)
                 } catch (e: Exception) {
@@ -133,6 +122,7 @@ class ResultActivity : AppCompatActivity() {
             Log.e(TAG, "Result is empty, cannot save prediction to database.")
         }
     }
+
 
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()

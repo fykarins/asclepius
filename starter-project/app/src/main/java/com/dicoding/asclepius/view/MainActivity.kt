@@ -4,167 +4,144 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import android.view.View
+import android.view.Menu
 import android.widget.Toast
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavController
-import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.setupWithNavController
 import com.dicoding.asclepius.R
 import com.dicoding.asclepius.databinding.ActivityMainBinding
-import com.dicoding.asclepius.helper.ImageClassifierHelper
-import com.dicoding.asclepius.mycamera.data.api.ApiConfig
-import com.dicoding.asclepius.mycamera.data.api.FileUploadResponse
-import com.dicoding.asclepius.utils.Utils
-import com.dicoding.asclepius.utils.reduceFileImage
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.gson.Gson
-import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
-import org.tensorflow.lite.task.vision.classifier.Classifications
-import retrofit2.HttpException
-import java.util.Locale
+import com.yalantis.ucrop.UCrop
+import java.io.File
 
 class MainActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityMainBinding
-    private lateinit var navController: NavController
-    private lateinit var imageClassifierHelper: ImageClassifierHelper
+
     private var currentImageUri: Uri? = null
+    private var croppedImageUri: Uri? = null
+    private lateinit var bottomNavigationView: BottomNavigationView
+
+    companion object {
+        const val TAG = "ImagePicker"
+        private const val REQUEST_RESULT = 1001
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        // Initialize NavController
-        val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
-        if (navHostFragment != null) {
-            navController = navHostFragment.navController
-        } else {
-            Log.e("MainActivity", "NavHostFragment not found")
+        bottomNavigationView = findViewById(R.id.menuBar)
+        bottomNavigationView.setOnNavigationItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.home -> {
+                    startActivity(Intent(this, MainActivity::class.java))
+                    true
+                }
+                R.id.news -> {
+                    startActivity(Intent(this,NewsActivity::class.java))
+                    true
+                }
+                R.id.history_menu -> {
+                    startActivity(Intent(this, HistoryActivity::class.java))
+                    true
+                }
+                else -> false
+            }
+        }
+        binding.galleryButton.setOnClickListener { startGallery() }
+        binding.analyzeButton.setOnClickListener {
+            currentImageUri?.let {
+                analyzeImage()
+                moveToResult()
+            } ?: run {
+                showToast(getString(R.string.image_classifier_failed))
+            }
         }
 
-        // Setup bottom navigation
-        val navView: BottomNavigationView = findViewById(R.id.nav_view)
-        navView.setupWithNavController(navController)
-
-        setupImageClassifier()
-        setupButtons()
     }
 
-    private fun setupImageClassifier() {
-        imageClassifierHelper = ImageClassifierHelper(
-            context = this,
-            classifierListener = object : ImageClassifierHelper.ClassifierListener {
-                override fun onError(error: String) {
-                    showToast(error)
-                }
-
-                override fun onResult(result: MutableList<Classifications>?, inferenceTime: Long) {
-                    navigateToResult(result)
-                }
-            }
-        )
-    }
-
-    private fun setupButtons() {
-        binding.galleryButton.setOnClickListener { startGallery() }
-        binding.analyzeButton.setOnClickListener { analyzeImage() }
-    }
-
-    private val launcherGallery = registerForActivityResult(
-        ActivityResultContracts.PickVisualMedia()
-    ) { uri: Uri? ->
-        uri?.let {
-            currentImageUri = it
-            displayImage()
-        } ?: Log.d("Photo Picker", "No media selected")
-    }
 
     private fun startGallery() {
-        launcherGallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        val intent = Intent(Intent.ACTION_GET_CONTENT)
+        intent.type = "image/*"
+        val chooser = Intent.createChooser(intent, "Choose a Picture")
+        launcherIntentGallery.launch(chooser)
     }
 
-    private fun displayImage() {
-        currentImageUri?.let {
-            Log.d("Image URI", "showImage: $it")
-            binding.previewImageView.setImageURI(it)
+    private val launcherIntentGallery = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val selectedImg = result.data?.data
+            selectedImg?.let { uri ->
+                currentImageUri = uri
+                showImage()
+                startUCrop(uri)
+            } ?: showToast("Failed to get image URI")
         }
+    }
+
+    private fun startUCrop(sourceUri: Uri) {
+        val fileName = "cropped_image_${System.currentTimeMillis()}.jpg"
+        val destinationUri = Uri.fromFile(File(cacheDir, fileName))
+        UCrop.of(sourceUri, destinationUri)
+            .withAspectRatio(1f, 1f)
+            .withMaxResultSize(1000, 1000)
+            .start(this)
+    }
+
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == UCrop.REQUEST_CROP && resultCode == RESULT_OK) {
+            val resultUri = UCrop.getOutput(data!!)
+            resultUri?.let {
+                showCroppedImage(resultUri)
+            } ?: showToast("Failed to crop image")
+        } else if (resultCode == UCrop.RESULT_ERROR) {
+            val cropError = UCrop.getError(data!!)
+            showToast("Crop error: ${cropError?.message}")
+        }
+    }
+
+    private fun showImage() {
+        currentImageUri?.let { uri ->
+            Log.d(TAG, "Displaying image: $uri")
+            binding.previewImageView.setImageURI(uri)
+        } ?: Log.d(TAG, "No image to display")
     }
 
     private fun analyzeImage() {
-        currentImageUri?.let {
-            imageClassifierHelper.classifyStaticImage(it)
-        } ?: showToast("Please choose an image first")
+        val intent = Intent(this, ResultActivity::class.java)
+        croppedImageUri?.let { uri ->
+            intent.putExtra(ResultActivity.IMAGE_URI, uri.toString())
+            startActivityForResult(intent, REQUEST_RESULT)
+        } ?: showToast(getString(R.string.image_classifier_failed))
     }
 
-    private fun navigateToResult(result: MutableList<Classifications>?) {
-        val resultString = result?.joinToString(separator = "\n") { classification ->
-            classification.categories.joinToString { category ->
-                "Label: ${category.label}, Confidence: ${category.score * 100}%"
-            }
-        } ?: "No result"
 
-        val intent = Intent(this, ResultActivity::class.java).apply {
-            putExtra("IMAGE_URI", currentImageUri.toString())
-            putExtra("RESULT", resultString)
-        }
-        startActivity(intent)
-    }
-
-    private fun uploadImage() {
-        currentImageUri?.let { uri ->
-            val imageFile = Utils().uriToFile(uri, this).reduceFileImage()
-            Log.d("Image Classification File", "showImage: ${imageFile.path}")
-            showLoading(true)
-
-            val requestImageFile = imageFile.asRequestBody("image/jpeg".toMediaType())
-            val multipartBody = MultipartBody.Part.createFormData("photo", imageFile.name, requestImageFile)
-
-            lifecycleScope.launch {
-                try {
-                    val apiService = ApiConfig.getApiService()
-                    val successResponse = apiService.uploadImage(multipartBody)
-                    handleUploadResponse(successResponse.data.isAboveThreshold, successResponse.data.result, successResponse.data.confidenceScore)
-                    showLoading(false)
-                } catch (e: HttpException) {
-                    handleUploadError(e)
-                } catch (e: Exception) {
-                    showToast("An unexpected error occurred")
-                    showLoading(false)
-                }
-            }
-        } ?: showToast(getString(R.string.empty_image_warning))
-    }
-
-    private fun handleUploadResponse(isAboveThreshold: Boolean?, result: String?, confidenceScore: Double?) {
-        binding.resultTextView.text = if (isAboveThreshold == true) {
-            showToast("Upload successful!")
-            String.format(Locale.getDefault(), "%s with %.2f%%", result, confidenceScore?.toFloat() ?: 0f)
-        } else {
-            showToast("Below threshold confidence")
-            String.format(Locale.getDefault(), "Low confidence score: %.2f%%", confidenceScore?.toFloat() ?: 0f)
-        }
-    }
-
-    private fun handleUploadError(e: HttpException) {
-        val errorBody = e.response()?.errorBody()?.string()
-        val errorResponse = Gson().fromJson(errorBody, FileUploadResponse::class.java)
-        showToast(errorResponse.message.toString())
-        showLoading(false)
-    }
-
-    private fun showLoading(isLoading: Boolean) {
-        binding.progressIndicator.visibility = if (isLoading) View.VISIBLE else View.GONE
+    private fun moveToResult() {
+        Log.d(TAG, "Moving to ResultActivity")
+        val intent = Intent(this, ResultActivity::class.java)
+        croppedImageUri?.let { uri ->
+            intent.putExtra(ResultActivity.IMAGE_URI, uri.toString())
+            startActivity(intent)
+        } ?: showToast(getString(R.string.image_classifier_failed))
     }
 
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
+
+    private fun showCroppedImage(uri: Uri) {
+        binding.previewImageView.setImageURI(uri)
+        croppedImageUri = uri
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu, menu)
+        return true
+    }
+
 }
