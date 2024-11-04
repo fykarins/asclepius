@@ -7,7 +7,8 @@ import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.dicoding.asclepius.data.local.AppDatabase
+import com.dicoding.asclepius.R
+import com.dicoding.asclepius.data.local.AsclepiusDatabase
 import com.dicoding.asclepius.data.local.PredictionHistory
 import com.dicoding.asclepius.databinding.ActivityResultBinding
 import com.dicoding.asclepius.helper.ImageClassifierHelper
@@ -16,6 +17,7 @@ import kotlinx.coroutines.launch
 import org.tensorflow.lite.task.vision.classifier.Classifications
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Locale
 
 class ResultActivity : AppCompatActivity() {
     private lateinit var binding: ActivityResultBinding
@@ -81,9 +83,10 @@ class ResultActivity : AppCompatActivity() {
         val score = topResult.categories[0].score
 
         fun Float.formatToString(): String {
-            return String.format("%.2f%%", this * 100)
+            return String.format(Locale.getDefault(), "%.2f%%", this * 100)
         }
-        binding.resultText.text = "$label ${score.formatToString()}"
+
+        binding.resultText.text = getString(R.string.result_text, label, score.formatToString())
     }
 
     private fun moveToHistory(imageUri: Uri, result: String) {
@@ -105,8 +108,8 @@ class ResultActivity : AppCompatActivity() {
                 }
             }
             val prediction = PredictionHistory(imagePath = destinationUri.toString(), result = result)
-            lifecycleScope.launch(Dispatchers.IO) {  // Use lifecycleScope instead of GlobalScope
-                val database = AppDatabase.getDatabase(applicationContext)
+            lifecycleScope.launch(Dispatchers.IO) {
+                val database = AsclepiusDatabase.getDatabase(applicationContext)
                 try {
                     database.predictionHistoryDao().insertPrediction(prediction)
                     Log.d(TAG, "Prediction saved successfully: $prediction")

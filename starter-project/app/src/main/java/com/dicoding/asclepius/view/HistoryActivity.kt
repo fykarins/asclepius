@@ -7,26 +7,31 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.TextView
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.dicoding.asclepius.R
-import com.dicoding.asclepius.adapter.PredictionHistoryAdapter
-import com.dicoding.asclepius.data.local.AppDatabase
+import com.dicoding.asclepius.adapter.HistoryAdapter
+import com.dicoding.asclepius.adapter.PredictionDiffCallback
+import com.dicoding.asclepius.data.local.AsclepiusDatabase
 import com.dicoding.asclepius.data.local.PredictionHistory
 import com.dicoding.asclepius.view.ResultActivity.Companion.REQUEST_HISTORY_UPDATE
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class HistoryActivity : AppCompatActivity(), PredictionHistoryAdapter.OnDeleteClickListener {
+class HistoryActivity : AppCompatActivity(), HistoryAdapter.OnDeleteClickListener {
 
     private lateinit var predictionRecyclerView: RecyclerView
-    private lateinit var predictionAdapter: PredictionHistoryAdapter
+    private lateinit var predictionAdapter: HistoryAdapter
     private var predictionList: MutableList<PredictionHistory> = mutableListOf()
     private lateinit var tvNotFound: TextView
     private lateinit var bottomNavigationView: BottomNavigationView
+    private lateinit var historyUpdateLauncher: ActivityResultLauncher<Intent>
 
     companion object{
         const val TAG = "historydata"
@@ -34,6 +39,14 @@ class HistoryActivity : AppCompatActivity(), PredictionHistoryAdapter.OnDeleteCl
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_history)
+
+        historyUpdateLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                lifecycleScope.launch(Dispatchers.Main) {
+                    loadPredictionHistoryFromDatabase()
+                }
+            }
+        }
 
         bottomNavigationView = findViewById(R.id.menuBar)
         predictionRecyclerView = findViewById(R.id.rvHistory)
@@ -44,10 +57,12 @@ class HistoryActivity : AppCompatActivity(), PredictionHistoryAdapter.OnDeleteCl
             when (menuItem.itemId) {
                 R.id.home -> {
                     startActivity(Intent(this, MainActivity::class.java))
+                    finish()
                     true
                 }
                 R.id.news -> {
                     startActivity(Intent(this, NewsActivity::class.java))
+                    finish()
                     true
                 }
                 R.id.history_menu -> {
@@ -59,7 +74,7 @@ class HistoryActivity : AppCompatActivity(), PredictionHistoryAdapter.OnDeleteCl
         predictionRecyclerView = findViewById(R.id.rvHistory)
         tvNotFound = findViewById(R.id.tvNotFound)
 
-        predictionAdapter = PredictionHistoryAdapter(predictionList)
+        predictionAdapter = HistoryAdapter(predictionList)
         predictionAdapter.setOnDeleteClickListener(this)
         predictionRecyclerView.adapter = predictionAdapter
         predictionRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -82,11 +97,15 @@ class HistoryActivity : AppCompatActivity(), PredictionHistoryAdapter.OnDeleteCl
 
     private fun loadPredictionHistoryFromDatabase() {
         lifecycleScope.launch(Dispatchers.Main) {
-            val predictions = AppDatabase.getDatabase(this@HistoryActivity).predictionHistoryDao().getAllPredictions()
+            val predictions = AsclepiusDatabase.getDatabase(this@HistoryActivity).predictionHistoryDao().getAllPredictions()
             Log.d(TAG, "Number of predictions: ${predictions.size}")
+
+            val diffCallback = PredictionDiffCallback(predictionList, predictions)
+            val diffResult = DiffUtil.calculateDiff(diffCallback)
+
             predictionList.clear()
             predictionList.addAll(predictions)
-            predictionAdapter.notifyDataSetChanged()
+            diffResult.dispatchUpdatesTo(predictionAdapter)
             showOrHideNoHistoryText()
         }
     }
@@ -105,10 +124,10 @@ class HistoryActivity : AppCompatActivity(), PredictionHistoryAdapter.OnDeleteCl
         val prediction = predictionList[position]
         if (prediction.result.isNotEmpty()) {
             lifecycleScope.launch(Dispatchers.IO) {
-                AppDatabase.getDatabase(this@HistoryActivity).predictionHistoryDao().deletePrediction(prediction)
+                AsclepiusDatabase.getDatabase(this@HistoryActivity).predictionHistoryDao().deletePrediction(prediction)
             }
             predictionList.removeAt(position)
-            predictionAdapter.notifyDataSetChanged()
+            predictionAdapter.notifyItemRemoved(position)
             showOrHideNoHistoryText()
         }
     }
