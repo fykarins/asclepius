@@ -24,7 +24,7 @@ class ResultActivity : AppCompatActivity() {
 
     companion object {
         const val IMAGE_URI = "img_uri"
-        const val TAG = "imagePicker"
+        const val TAG = "ResultActivity"
         const val RESULT_TEXT = "result_text"
         const val REQUEST_HISTORY_UPDATE = 1
     }
@@ -35,40 +35,21 @@ class ResultActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val imageUriString = intent.getStringExtra(IMAGE_URI)
-        if (imageUriString != null) {
-            val imageUri = Uri.parse(imageUriString)
+        imageUriString?.let {
+            val imageUri = Uri.parse(it)
             displayImage(imageUri)
-
-            val imageClassifierHelper = ImageClassifierHelper(
-                contextValue = this,
-                classifierListenerValue = object : ImageClassifierHelper.ClassifierListener {
-                    override fun onError(errorMsg: String) {  // Updated parameter name
-                        Log.d(TAG, "Error: $errorMsg")
-                    }
-
-                    override fun onResults(results: List<Classifications>?, inferenceTime: Long) {
-                        results?.let { showResults(it) }
-                    }
-                }
-            )
-            imageClassifierHelper.classifyImage(imageUri)
-        } else {
+            classifyImage(imageUri)
+        } ?: run {
             Log.e(TAG, "No image URI provided")
+            showToast(getString(R.string.image_not_available))
             finish()
         }
 
         binding.saveButton.setOnClickListener {
-            val imageUriStr = intent.getStringExtra(IMAGE_URI)  // Renamed to avoid shadowing
-            val result = binding.resultText.text.toString()
-
-            if (imageUriStr != null) {
-                val imageUri = Uri.parse(imageUriStr)
-                showToast("Data saved")
-                savePredictionToDatabase(imageUri, result)
-            } else {
-                showToast("No image URI provided")
-                finish()
-            }
+            val resultText = binding.resultText.text.toString()
+            imageUriString?.let {
+                savePredictionToDatabase(Uri.parse(it), resultText)
+            } ?: showToast(getString(R.string.image_not_available))
         }
     }
 
@@ -77,25 +58,29 @@ class ResultActivity : AppCompatActivity() {
         binding.resultImage.setImageURI(uri)
     }
 
+    private fun classifyImage(uri: Uri) {
+        val imageClassifierHelper = ImageClassifierHelper(
+            contextValue = this,
+            classifierListenerValue = object : ImageClassifierHelper.ClassifierListener {
+                override fun onError(errorMsg: String) {
+                    Log.e(TAG, "Classification error: $errorMsg")
+                    showToast(getString(R.string.analysis_error, errorMsg))
+                }
+
+                override fun onResults(results: List<Classifications>?, inferenceTime: Long) {
+                    results?.let { showResults(it) }
+                }
+            }
+        )
+        imageClassifierHelper.classifyImage(uri)
+    }
+
     private fun showResults(results: List<Classifications>) {
         val topResult = results[0]
         val label = topResult.categories[0].label
         val score = topResult.categories[0].score
 
-        fun Float.formatToString(): String {
-            return String.format(Locale.getDefault(), "%.2f%%", this * 100)
-        }
-
         binding.resultText.text = getString(R.string.result_text, label, score.formatToString())
-    }
-
-    private fun moveToHistory(imageUri: Uri, result: String) {
-        val intent = Intent(this, HistoryActivity::class.java)
-        intent.putExtra(RESULT_TEXT, result)
-        intent.putExtra(IMAGE_URI, imageUri.toString())
-        setResult(RESULT_OK, intent)
-        startActivity(intent)
-        finish()
     }
 
     private fun savePredictionToDatabase(imageUri: Uri, result: String) {
@@ -113,19 +98,31 @@ class ResultActivity : AppCompatActivity() {
                 try {
                     database.predictionHistoryDao().insertPrediction(prediction)
                     Log.d(TAG, "Prediction saved successfully: $prediction")
-                    val predictions = database.predictionHistoryDao().getAllPredictions()
-                    Log.d(TAG, "All predictions after save: $predictions")
                     moveToHistory(destinationUri, result)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to save prediction: $prediction", e)
+                    Log.e(TAG, "Failed to save prediction", e)
                 }
             }
         } else {
+            showToast(getString(R.string.empty_result_cannot_save))
             Log.e(TAG, "Result is empty, cannot save prediction to database.")
         }
     }
 
+    private fun moveToHistory(imageUri: Uri, result: String) {
+        val intent = Intent(this, HistoryActivity::class.java)
+        intent.putExtra(RESULT_TEXT, result)
+        intent.putExtra(IMAGE_URI, imageUri.toString())
+        setResult(RESULT_OK, intent)
+        startActivity(intent)
+        finish()
+    }
+
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun Float.formatToString(): String {
+        return String.format(Locale.getDefault(), "%.2f%%", this * 100)
     }
 }

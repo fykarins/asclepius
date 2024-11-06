@@ -36,4 +36,7 @@
     <string name="image_preview">Image preview</string>
     <string name="asclepius">Asclepius</string>
     <string name="fragment_home">Fragment Home</string>
+    <string name="image_not_available">Image not available</string>
+    <string name="analysis_error">Analysis error: %1$s</string>
+    <string name="empty_result_cannot_save">Empty result, cannot save</string>
 </resources>

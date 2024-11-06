@@ -1,5 +1,6 @@
 package com.dicoding.asclepius.view
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -32,8 +33,7 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == RESULT_OK) {
-            val selectedImg = result.data?.data
-            selectedImg?.let { uri ->
+            result.data?.data?.let { uri ->
                 currentImageUri = uri
                 showImage()
                 startUCrop(uri)
@@ -45,23 +45,43 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == RESULT_OK) {
-            showToast("Image analyzed successfully")
+            showToast("Image analysis saved successfully")
         } else {
-            showToast("Image analysis failed")
+            showToast("Image analysis failed to save")
+            // Clear the image view and reset image URIs when analysis fails
+            binding.previewImageView.setImageURI(null)
+            currentImageUri = null
+            croppedImageUri = null
         }
     }
 
     private val cropActivityLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == RESULT_OK) {
-            val resultUri = UCrop.getOutput(result.data!!)
-            resultUri?.let {
-                showCroppedImage(resultUri)
-            } ?: showToast("Failed to crop image")
-        } else if (result.resultCode == UCrop.RESULT_ERROR) {
-            val cropError = UCrop.getError(result.data!!)
-            showToast("Crop error: ${cropError?.message}")
+        when (result.resultCode) {
+            RESULT_OK -> {
+                UCrop.getOutput(result.data!!)?.let { uri ->
+                    showCroppedImage(uri)
+                    binding.analyzeButton.isEnabled = true  // active when analyze
+                } ?: showToast("Failed to crop image")
+            }
+            RESULT_CANCELED -> {
+                showToast("Cropping canceled")
+                // Clear the image view when cropping is canceled
+                binding.previewImageView.setImageURI(null)
+                currentImageUri = null
+                croppedImageUri = null
+                binding.analyzeButton.isEnabled = false // nonactive when cancel analyze
+            }
+            UCrop.RESULT_ERROR -> {
+                val cropError = UCrop.getError(result.data!!)
+                showToast("Crop error: ${cropError?.message}")
+                // Clear the image view in case of an error as well
+                binding.previewImageView.setImageURI(null)
+                currentImageUri = null
+                croppedImageUri = null
+                binding.analyzeButton.isEnabled = false // nonactive when analyze error
+            }
         }
     }
 
@@ -81,7 +101,6 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.setDisplayShowTitleEnabled(true)
         toolbar.setTitleTextColor(ContextCompat.getColor(this, android.R.color.white))
 
-        bottomNavigationView = findViewById(R.id.menuBar)
         bottomNavigationView.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.home -> {
@@ -108,11 +127,16 @@ class MainActivity : AppCompatActivity() {
                 showToast(getString(R.string.image_classifier_failed))
             }
         }
-    }
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menuInflater.inflate(R.menu.empty_menu, menu)
-        return true
+        val launcherResultActivity = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                val data = result.data
+            }
+        }
+
+        launcherResultActivity.launch(Intent(this, ResultActivity::class.java))
     }
 
     private fun startGallery() {
@@ -176,4 +200,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.empty_menu, menu)
+        return true
+    }
 }

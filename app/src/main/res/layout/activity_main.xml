@@ -75,6 +75,7 @@
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="112dp"
         android:text="@string/analyze"
+        android:enabled="false"
         app:layout_constraintBottom_toBottomOf="@id/menuBar"
         app:layout_constraintEnd_toEndOf="@+id/menuBar"
         app:layout_constraintHorizontal_bias="0.5"
