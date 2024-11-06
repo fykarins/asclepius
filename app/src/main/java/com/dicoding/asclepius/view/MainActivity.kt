@@ -10,6 +10,8 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.setupWithNavController
 import com.dicoding.asclepius.R
 import com.dicoding.asclepius.databinding.ActivityMainBinding
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -67,6 +69,12 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        val navController = navHostFragment.navController
+        bottomNavigationView = findViewById(R.id.menuBar)
+        bottomNavigationView.setupWithNavController(navController)
 
         val toolbar: androidx.appcompat.widget.Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
@@ -149,4 +157,23 @@ class MainActivity : AppCompatActivity() {
         binding.previewImageView.setImageURI(uri)
         croppedImageUri = uri
     }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        currentImageUri?.let { outState.putString("currentImageUri", it.toString()) }
+        croppedImageUri?.let { outState.putString("croppedImageUri", it.toString()) }
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        savedInstanceState.getString("currentImageUri")?.let { uriString ->
+            currentImageUri = Uri.parse(uriString)
+            showImage()
+        }
+        savedInstanceState.getString("croppedImageUri")?.let { uriString ->
+            croppedImageUri = Uri.parse(uriString)
+            showCroppedImage(croppedImageUri!!)
+        }
+    }
+
 }
