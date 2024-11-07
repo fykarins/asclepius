@@ -24,6 +24,7 @@ class MainActivity : AppCompatActivity() {
     private var currentImageUri: Uri? = null
     private var croppedImageUri: Uri? = null
     private lateinit var bottomNavigationView: BottomNavigationView
+    private var isAnalyzeButtonEnabled: Boolean = false
 
     companion object {
         const val TAG = "ImagePicker"
@@ -62,6 +63,7 @@ class MainActivity : AppCompatActivity() {
             RESULT_OK -> {
                 UCrop.getOutput(result.data!!)?.let { uri ->
                     showCroppedImage(uri)
+                    isAnalyzeButtonEnabled = true
                     binding.analyzeButton.isEnabled = true  // active when analyze
                 } ?: showToast("Failed to crop image")
             }
@@ -71,6 +73,7 @@ class MainActivity : AppCompatActivity() {
                 binding.previewImageView.setImageURI(null)
                 currentImageUri = null
                 croppedImageUri = null
+                isAnalyzeButtonEnabled = false
                 binding.analyzeButton.isEnabled = false // nonactive when cancel analyze
             }
             UCrop.RESULT_ERROR -> {
@@ -80,6 +83,7 @@ class MainActivity : AppCompatActivity() {
                 binding.previewImageView.setImageURI(null)
                 currentImageUri = null
                 croppedImageUri = null
+                isAnalyzeButtonEnabled = false
                 binding.analyzeButton.isEnabled = false // nonactive when analyze error
             }
         }
@@ -89,6 +93,18 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        isAnalyzeButtonEnabled = savedInstanceState?.getBoolean("isAnalyzeButtonEnabled") ?: false
+        binding.analyzeButton.isEnabled = isAnalyzeButtonEnabled
+
+        binding.galleryButton.setOnClickListener { startGallery() }
+        binding.analyzeButton.setOnClickListener {
+            currentImageUri?.let {
+                analyzeImage()
+            } ?: run {
+                showToast(getString(R.string.image_classifier_failed))
+            }
+        }
 
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
@@ -180,12 +196,15 @@ class MainActivity : AppCompatActivity() {
     private fun showCroppedImage(uri: Uri) {
         binding.previewImageView.setImageURI(uri)
         croppedImageUri = uri
+        binding.analyzeButton.isEnabled = true  // Set analyze button active
+        isAnalyzeButtonEnabled = true
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         currentImageUri?.let { outState.putString("currentImageUri", it.toString()) }
         croppedImageUri?.let { outState.putString("croppedImageUri", it.toString()) }
+        outState.putBoolean("isAnalyzeButtonEnabled", isAnalyzeButtonEnabled)
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
@@ -198,6 +217,8 @@ class MainActivity : AppCompatActivity() {
             croppedImageUri = Uri.parse(uriString)
             showCroppedImage(croppedImageUri!!)
         }
+        isAnalyzeButtonEnabled = savedInstanceState.getBoolean("isAnalyzeButtonEnabled", false)
+        binding.analyzeButton.isEnabled = isAnalyzeButtonEnabled
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
